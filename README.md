@@ -41,7 +41,7 @@ and `4345r9.clmb`. Bluetooth packaging expects `BCM4345C5.hcd`. Signing and devi
 installation are separate steps.
 
 For Bluetooth logging, open Device Manager as administrator, then open
-**System devices > SparkLAN AP6256 Bluetooth UART > Properties > Advanced**.
+**System devices > SparkLAN AP6256 Bluetooth (UART) > Properties > Advanced**.
 Log Level offers Disabled (the default), Errors, Warnings, Information and
 Verbose. Save the changed level and close the properties window to restart
 Bluetooth. The setting controls

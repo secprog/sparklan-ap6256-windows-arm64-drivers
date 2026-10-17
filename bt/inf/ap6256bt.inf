@@ -101,5 +101,5 @@ HKR,Parameters,PCMSyncMode,0x10001,0
 ProviderName          = "Rubik Pi 3 WoA Project"
 ManufacturerName      = "SparkLAN / AMPAK (BCM43456)"
 DiskName              = "AP6256 Driver Installation Disk"
-AP6256Bt.DeviceDesc   = "SparkLAN AP6256 Bluetooth UART"
+AP6256Bt.DeviceDesc   = "SparkLAN AP6256 Bluetooth (UART)"
 AP6256Bt.ServiceDesc  = "AP6256 Bluetooth UART H4 Transport"

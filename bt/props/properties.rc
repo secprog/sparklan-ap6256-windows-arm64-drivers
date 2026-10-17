@@ -51,7 +51,7 @@ BEGIN
             VALUE "FileDescription", "AP6256 Bluetooth device properties"
             VALUE "FileVersion", AP6256BT_VER_STR
             VALUE "OriginalFilename", "ap6256btprops.dll"
-            VALUE "ProductName", "SparkLAN AP6256 Bluetooth UART"
+            VALUE "ProductName", "SparkLAN AP6256 Bluetooth (UART)"
             VALUE "ProductVersion", AP6256BT_VER_STR
         END
     END

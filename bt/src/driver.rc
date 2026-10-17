@@ -34,7 +34,7 @@ BEGIN
       VALUE "InternalName", "ap6256bt.sys"
 
       VALUE "OriginalFilename", "ap6256bt.sys"
-      VALUE "ProductName", "SparkLAN AP6256 Bluetooth UART"
+      VALUE "ProductName", "SparkLAN AP6256 Bluetooth (UART)"
       VALUE "ProductVersion", AP6256BT_VER_STR
     END
   END
