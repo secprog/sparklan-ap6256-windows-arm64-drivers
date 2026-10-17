@@ -68,18 +68,26 @@ Provided without warranty. See LICENSE for the license text.
 
   <ItemGroup>
     <ClCompile Include="..\src\fn.c" />
+    <ClCompile Include="..\src\logging.c" />
+    <ClInclude Include="..\src\logging.h" />
     <ResourceCompile Include="..\src\ap6256fn.rc" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="..\inf\ap6256fn.inf" />
+    <FilesToPackage Include="$(TargetPath);$(OutDir)ap6256fnprops.dll" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
+  <Target Name="Ap6256FnBuildProperties" BeforeTargets="PrepareForBuild">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\props\ap6256fnprops.vcxproj" Targets="Build" Properties="OutDir=$(OutDir);IntDir=$(IntDir)props\;SupportsPackaging=false;EnableInf2cat=false" />
+  </Target>
 
   <Target Name="Ap6256FnStageBinary" AfterTargets="DriverPackageTarget" BeforeTargets="Inf2Cat">
     <MakeDir Directories="$(OutDir)$(TargetName)\" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(OutDir)$(TargetName)\"
           SkipUnchangedFiles="false" Condition="Exists('$(TargetPath)')" />
+    <Copy SourceFiles="$(OutDir)ap6256fnprops.dll" DestinationFolder="$(OutDir)$(TargetName)\" SkipUnchangedFiles="false" />
   </Target>
   <ItemDefinitionGroup Condition="'$(Ap6256UseBuildVersion)'=='true'">
     <ClCompile>

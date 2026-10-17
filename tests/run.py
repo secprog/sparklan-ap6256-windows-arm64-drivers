@@ -20,7 +20,7 @@ def sha(path):
 
 def inputs():
     files = []
-    for folder in ('src', 'inf', 'bt', 'tests'):
+    for folder in ('src', 'inf', 'bt', 'fn', 'tests'):
         files += [path for path in (ROOT / folder).rglob('*') if path.is_file()
                   and '__pycache__' not in path.parts]
     files += [ROOT / name for name in ('LICENSE', 'LICENSE-ISC.txt', 'NOTICE.txt', 'BLUETOOTH-LINKING-EXCEPTION.txt')]

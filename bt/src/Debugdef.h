@@ -9,6 +9,7 @@
 
 #include "version.h"
 #include "buildstamp.h"
+#include "logging.h"
 
 #define WPP_CONTROL_GUIDS \
     WPP_DEFINE_CONTROL_GUID(ap6256bt,(a6256b70,4345,4c00,b7a2,56b7a2ea6002),  \
@@ -27,7 +28,7 @@
 #define LEVEL_VERBOSE   TRACE_LEVEL_VERBOSE
 
 #define WPP_LEVEL_FLAG_ENABLED(lvl, component) \
-    (WPP_LEVEL_ENABLED(component) && WPP_CONTROL(WPP_BIT_ ## component).Level >=lvl)
+    (BtWppEnabled(lvl) && WPP_LEVEL_ENABLED(component) && WPP_CONTROL(WPP_BIT_ ## component).Level >=lvl)
 
 #define WPP_LEVEL_FLAG_LOGGER(lvl, component) \
     WPP_LEVEL_LOGGER(component)
@@ -35,14 +36,11 @@
 #define WPP_RECORDER_LEVEL_FLAG_ARGS(lvl, component) \
     WPP_CONTROL(WPP_BIT_ ## component).AutoLogContext, 0, WPP_BIT_ ## component
 #define WPP_RECORDER_LEVEL_FLAG_FILTER(lvl, component) \
-    (lvl < TRACE_LEVEL_VERBOSE || WPP_CONTROL(WPP_BIT_ ## component).AutoLogVerboseEnabled)
+    (BtWppEnabled(lvl) && (lvl < TRACE_LEVEL_VERBOSE || WPP_CONTROL(WPP_BIT_ ## component).AutoLogVerboseEnabled))
 
 #define WithinRange(min, value, max) (min <= value && value <= max)
 #define MinToPrint(val1, val2) (val1 < val2 ? val1 : val2)
 #define MAX_EVENT_PARAMS_TO_DISPLAY     8
 #define MAX_COMMAND_PARAMS_TO_DISPLAY   8
-
-#define BtTrace(...) \
-    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "ap6256bt: " __VA_ARGS__)
 
 #endif

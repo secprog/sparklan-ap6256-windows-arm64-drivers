@@ -83,10 +83,9 @@ DriverDeviceAdd(
 
     PAGED_CODE();
 
+    BtLogLoadSettings(WdfFdoInitWdmGetPhysicalDevice(_DeviceInit));
     DoTrace(LEVEL_INFO, TFLAG_PNP, ("+DriverDeviceAdd: 0x%p", _Driver));
     BtTrace("DeviceAdd entry\n");
-
-    DeviceQueryDeviceParameters(_Driver);
 
     DriverSetDeviceCallbackEvents(_DeviceInit);
 
@@ -197,7 +196,7 @@ DriverEntry(
         WPP_CLEANUP(_DriverObject);
     }
 
-    BtTrace("DriverEntry v%s built %s -> 0x%08X\n",
+    BtTraceStatus(Status, "DriverEntry v%s built %s -> 0x%08X\n",
             AP6256BT_VER_STR, AP6256_BUILD_STAMP, Status);
     return Status;
 

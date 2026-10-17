@@ -1,0 +1,46 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Licensed under the GNU General Public License, version 3 only.
+ * Provided without warranty. See LICENSE for the license text.
+ */
+
+#include <windows.h>
+#include "resource.h"
+#include "version.h"
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+IDD_ADVANCED DIALOGEX 0, 0, 230, 132
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_CAPTION
+CAPTION "Advanced"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Log &level:", -1, 12, 16, 70, 12
+    COMBOBOX IDC_LOG_LEVEL, 88, 13, 128, 90, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Save changes and close these properties to restart this companion device.", IDC_STATUS, 12, 45, 204, 48
+    PUSHBUTTON "Restore safe de&faults", IDC_RESTORE_DEFAULTS, 12, 106, 112, 16, WS_TABSTOP
+END
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION AP6256FN_VER_MAJOR,AP6256FN_VER_MINOR,AP6256FN_VER_BUILD,AP6256FN_VER_REV
+PRODUCTVERSION AP6256FN_VER_MAJOR,AP6256FN_VER_MINOR,AP6256FN_VER_BUILD,AP6256FN_VER_REV
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_DLL
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "AP6256 companion device properties"
+            VALUE "FileVersion", AP6256FN_VER_STR
+            VALUE "OriginalFilename", "ap6256fnprops.dll"
+            VALUE "ProductName", "SparkLAN AP6256 Auxiliary SDIO Function"
+            VALUE "ProductVersion", AP6256FN_VER_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

@@ -170,7 +170,7 @@ Ap6256BtTraceBytes(
     ULONG shown;
     ULONG i;
 
-    if (Data == NULL) {
+    if (!BtLogEnabled(BT_LOG_VERBOSE) || Data == NULL) {
         return;
     }
 
@@ -182,7 +182,7 @@ Ap6256BtTraceBytes(
     }
     text[shown * 3] = '\0';
 
-    BtTrace("    %s (%u byte%s): %s%s\n",
+    BtTraceVerbose("    %s (%u byte%s): %s%s\n",
             Label, Length, (Length == 1) ? "" : "s", text,
             (Length > shown) ? "..." : "");
 }
@@ -318,7 +318,7 @@ Ap6256BtReadHciEvent(
         status = Ap6256BtReadExact(
             Target, Request, &packetType, sizeof(packetType));
         if (!NT_SUCCESS(status)) {
-            BtTrace("H4 sync: read failed 0x%08X after %u byte%s\n",
+            BtTraceWarning("H4 sync: read failed 0x%08X after %u byte%s\n",
                     status, syncCount, (syncCount == 1) ? "" : "s");
             if (syncCount != 0) {
                 Ap6256BtTraceBytes(
@@ -336,7 +336,7 @@ Ap6256BtReadHciEvent(
     }
 
     if (packetType != (UCHAR)HciPacketEvent) {
-        BtTrace("H4 sync: no 0x04 event marker in %u byte%s - the line is\n"
+        BtTraceWarning("H4 sync: no 0x04 event marker in %u byte%s - the line is\n"
                 "         carrying something, but not HCI (baud mismatch is\n"
                 "         the usual cause)\n",
                 syncCount, (syncCount == 1) ? "" : "s");
@@ -466,7 +466,7 @@ Ap6256BtCommand(
     status = Ap6256BtWriteExact(
         Target, Request, packet, CommandLength + 1);
     if (!NT_SUCCESS(status)) {
-        BtTrace("HCI %04X: write failed 0x%08X - the UART would not take\n"
+        BtTraceError("HCI %04X: write failed 0x%08X - the UART would not take\n"
                 "         the bytes, so nothing reached the chip\n",
                 opcode, status);
         return status;
@@ -475,7 +475,7 @@ Ap6256BtCommand(
     status = Ap6256BtReadHciEvent(
         Target, Request, event, eventCapacity, &eventLength);
     if (!NT_SUCCESS(status)) {
-        BtTrace("HCI %04X: sent, no usable reply 0x%08X - the controller did\n"
+        BtTraceError("HCI %04X: sent, no usable reply 0x%08X - the controller did\n"
                 "         not answer. If this is the first command after\n"
                 "         LAUNCH_RAM it is still rebooting: raise\n"
                 "         PostLaunchDelayMs. Otherwise the two ends disagree\n"
@@ -487,7 +487,7 @@ Ap6256BtCommand(
     status = Ap6256BtVerifyCommandEvent(
         Command, CommandLength, event, eventLength);
     if (!NT_SUCCESS(status)) {
-        BtTrace("HCI %04X: the chip replied but the event was rejected "
+        BtTraceError("HCI %04X: the chip replied but the event was rejected "
                 "0x%08X\n", opcode, status);
         Ap6256BtTraceBytes("event", event, eventLength);
         return status;
@@ -546,7 +546,7 @@ Ap6256BtConfigureHostUart(
         NULL);
 
     if (!NT_SUCCESS(status)) {
-        BtTrace("uart: SET_LINE_CONTROL failed 0x%08X\n", status);
+        BtTraceError("uart: SET_LINE_CONTROL failed 0x%08X\n", status);
         return status;
     }
 
@@ -563,7 +563,7 @@ Ap6256BtConfigureHostUart(
         0,
         NULL);
     if (!NT_SUCCESS(status)) {
-        BtTrace("uart: SET_HANDFLOW (CTS/RTS) failed 0x%08X\n", status);
+        BtTraceError("uart: SET_HANDFLOW (CTS/RTS) failed 0x%08X\n", status);
         return status;
     }
 
@@ -578,13 +578,13 @@ Ap6256BtConfigureHostUart(
         0,
         NULL);
     if (!NT_SUCCESS(status)) {
-        BtTrace("uart: SET_TIMEOUTS failed 0x%08X\n", status);
+        BtTraceError("uart: SET_TIMEOUTS failed 0x%08X\n", status);
         return status;
     }
 
     status = Ap6256BtSetHostBaud(Target, Request, BaudRate);
     if (!NT_SUCCESS(status)) {
-        BtTrace("uart: SET_BAUD_RATE %u failed 0x%08X\n", BaudRate, status);
+        BtTraceError("uart: SET_BAUD_RATE %u failed 0x%08X\n", BaudRate, status);
         return status;
     }
 
@@ -602,7 +602,7 @@ Ap6256BtConfigureHostUart(
         0,
         NULL);
     if (!NT_SUCCESS(status)) {
-        BtTrace("uart: PURGE failed 0x%08X\n", status);
+        BtTraceWarning("uart: PURGE failed 0x%08X\n", status);
         return status;
     }
 
@@ -1573,7 +1573,7 @@ DeviceInitialize(
     UNREFERENCED_PARAMETER(IsUartReset);
 
     if ((config == NULL) || (config->InitialBaudRate == 0)) {
-        BtTrace("DeviceInitialize: no usable config (config %p)\n", config);
+        BtTraceError("DeviceInitialize: no usable config (config %p)\n", config);
         return FALSE;
     }
 
@@ -1588,13 +1588,13 @@ DeviceInitialize(
         IoTargetSerial,
         RequestSync,
         config->InitialBaudRate);
-    BtTrace("host uart @ %u baud -> 0x%08X\n", config->InitialBaudRate, status);
+    BtTraceStatus(status, "host uart @ %u baud -> 0x%08X\n", config->InitialBaudRate, status);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
     status = BcmHciReset(IoTargetSerial, RequestSync);
-    BtTrace("HCI reset -> 0x%08X%s\n", status,
+    BtTraceStatus(status, "HCI reset -> 0x%08X%s\n", status,
             NT_SUCCESS(status) ? "" :
                 " (no reply: check BT_REG_ON, the patchram baud, or RTS/CTS)");
     if (!NT_SUCCESS(status)) {
@@ -1606,7 +1606,7 @@ DeviceInitialize(
         IoTargetSerial,
         RequestSync,
         &verboseConfig);
-    BtTrace("read verbose config -> 0x%08X (build %u)\n",
+    BtTraceStatus(status, "read verbose config -> 0x%08X (build %u)\n",
             status, verboseConfig.BuildNumber);
     if (!NT_SUCCESS(status)) {
         goto Exit;
@@ -1669,7 +1669,7 @@ DeviceInitialize(
             RequestSync,
             downloadPath,
             config->PostLaunchDelayMs);
-        BtTrace("patchram download -> 0x%08X\n", status);
+        BtTraceStatus(status, "patchram download -> 0x%08X\n", status);
         if (!NT_SUCCESS(status)) {
             goto Exit;
         }
@@ -1678,7 +1678,7 @@ DeviceInitialize(
             IoTargetSerial,
             RequestSync,
             config->InitialBaudRate);
-        BtTrace("post-patchram resync @ %u baud -> 0x%08X\n",
+        BtTraceStatus(status, "post-patchram resync @ %u baud -> 0x%08X\n",
                 config->InitialBaudRate, status);
         if (!NT_SUCCESS(status)) {
             goto Exit;
@@ -1691,7 +1691,7 @@ DeviceInitialize(
             IoTargetSerial,
             RequestSync,
             config->OperationalBaudRate);
-        BtTrace("operational baud %u -> 0x%08X\n",
+        BtTraceStatus(status, "operational baud %u -> 0x%08X\n",
                 config->OperationalBaudRate, status);
         if (!NT_SUCCESS(status)) {
             goto Exit;
@@ -1700,7 +1700,7 @@ DeviceInitialize(
     }
 
     status = BcmHciReset(IoTargetSerial, RequestSync);
-    BtTrace("post-config HCI reset -> 0x%08X\n", status);
+    BtTraceStatus(status, "post-config HCI reset -> 0x%08X\n", status);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -1710,7 +1710,7 @@ DeviceInitialize(
             IoTargetSerial,
             RequestSync,
             config);
-        BtTrace("PCM audio config -> 0x%08X\n", status);
+        BtTraceStatus(status, "PCM audio config -> 0x%08X\n", status);
         if (!NT_SUCCESS(status)) {
             goto Exit;
         }
@@ -1718,7 +1718,7 @@ DeviceInitialize(
 
     if (config->ConfigureSleepMode != 0) {
         if (!FdoExtension->HostWakeOperational) {
-            BtTrace("sleep mode requested but HOST_WAKE is not operational -\n"
+            BtTraceWarning("sleep mode requested but HOST_WAKE is not operational -\n"
                     "         continuing without it. The ASL GpioInt needs\n"
                     "         ExclusiveAndWake for the wake hint to reach us.\n");
             config->ConfigureSleepMode = 0;
@@ -1745,7 +1745,7 @@ Exit:
         NT_SUCCESS(status) ? LEVEL_INFO : LEVEL_ERROR,
         TFLAG_HCI,
         ("BCM4345C0 initialization %!STATUS!", status));
-    BtTrace("DeviceInitialize -> 0x%08X\n", status);
+    BtTraceStatus(status, "DeviceInitialize -> 0x%08X\n", status);
     return NT_SUCCESS(status) ? TRUE : FALSE;
 }
 

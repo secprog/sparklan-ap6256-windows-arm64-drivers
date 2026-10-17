@@ -13,11 +13,18 @@ param(
     [switch]$PackageFirmware,
     [string]$FirmwareDirectory = '',
     [string]$VersionCacheDirectory = '',
+    [version]$Version,
     [string]$WdkPackageDirectory = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $sourceRoot = [IO.Path]::GetFullPath($PSScriptRoot)
+$explicitVersion = $PSBoundParameters.ContainsKey('Version')
+if ($explicitVersion -and ($null -eq $Version -or $Version.Major -gt 65535 -or $Version.Minor -gt 65535 -or
+    $Version.Build -lt 0 -or $Version.Build -gt 65535 -or
+    $Version.Revision -lt 0 -or $Version.Revision -gt 65535)) {
+    throw 'Version must contain four components between 0 and 65535.'
+}
 $outputPath = [IO.Path]::GetFullPath($OutputDirectory)
 if ($outputPath.Equals($sourceRoot, [StringComparison]::OrdinalIgnoreCase) -or
     $outputPath.StartsWith($sourceRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
@@ -34,7 +41,7 @@ if ($versionCachePath.Equals($sourceRoot, [StringComparison]::OrdinalIgnoreCase)
 
 function Get-SourceFingerprint {
     $sourceEntries = @()
-    foreach ($relativeDirectory in @('src', 'inf', 'bt\src', 'bt\inf', 'fn\src', 'fn\inf')) {
+    foreach ($relativeDirectory in @('src', 'inf', 'bt\src', 'bt\inf', 'bt\props', 'fn\src', 'fn\inf', 'fn\props')) {
         $sourceEntries += @(Get-ChildItem -LiteralPath (Join-Path $sourceRoot $relativeDirectory) -File -Recurse)
     }
     foreach ($relativeDirectory in @('build', 'bt\build', 'fn\build')) {
@@ -134,7 +141,9 @@ try {
             if ($cachedVersion -gt $highestVersion) { $highestVersion = $cachedVersion }
         }
     }
-    if ($versions.ContainsKey($sourceFingerprint)) {
+    if ($explicitVersion) {
+        $sourceVersion = $Version
+    } elseif ($versions.ContainsKey($sourceFingerprint)) {
         $sourceVersion = [version]$versions[$sourceFingerprint]
     } elseif ($versions.Count -eq 0) {
         $sourceVersion = [version]'1.0.0.0'
@@ -231,7 +240,7 @@ if ($LASTEXITCODE -ne 0) {
     if ((Get-SourceFingerprint) -ne $sourceFingerprint) {
         throw 'Source files changed during the build. Rebuild the current source.'
     }
-    if (-not $versions.ContainsKey($sourceFingerprint)) {
+    if (-not $explicitVersion -and -not $versions.ContainsKey($sourceFingerprint)) {
         $versions[$sourceFingerprint] = $sourceVersion.ToString(4)
         $stateJson = @{ schema = 1; versions = $versions } | ConvertTo-Json -Depth 4
         $temporaryStatePath = $versionStatePath + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'

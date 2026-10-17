@@ -20,6 +20,7 @@ DefaultDestDir = 13
 
 [SourceDisksFiles]
 ap6256fn.sys = 1,,
+ap6256fnprops.dll = 1,,
 
 [Manufacturer]
 %ManufacturerName% = Standard, NTARM64.10.0...16299
@@ -30,9 +31,15 @@ ap6256fn.sys = 1,,
 
 [AP6256FN.Install]
 CopyFiles = AP6256FN.CopyFiles
+AddReg = AP6256FN.Properties
 
 [AP6256FN.CopyFiles]
 ap6256fn.sys
+ap6256fnprops.dll
+
+[AP6256FN.Properties]
+HKR,,EnumPropPages32,0,"%13%\ap6256fnprops.dll,Ap6256FnPropPageProvider"
+HKR,,DebugLogLevel,0x10003,0
 
 [AP6256FN.Install.Services]
 AddService = ap6256fn, 2, AP6256FN.Service

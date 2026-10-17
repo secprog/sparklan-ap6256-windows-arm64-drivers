@@ -64,18 +64,24 @@ Additional permission: see BLUETOOTH-LINKING-EXCEPTION.txt.
       <WppKernelMode>true</WppKernelMode>
       <WppTraceFunction>DoTrace(LEVEL,FLAG,(MSG,...))</WppTraceFunction>
     </ClCompile>
+    <ClCompile Include="..\src\logging.c" />
     <ResourceCompile Include="..\src\driver.rc" />
     <Inf Include="..\inf\ap6256bt.inf" />
     <FilesToPackage Include="$(TargetPath)" Condition="'$(ConfigurationType)'=='Driver'" />
+    <FilesToPackage Include="$(OutDir)ap6256btprops.dll" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\driver.h;..\src\Io.h;..\src\public.h;..\src\device.h;..\src\Debugdef.h" />
+    <ClInclude Include="..\src\driver.h;..\src\Io.h;..\src\public.h;..\src\device.h;..\src\Debugdef.h;..\src\logging.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="Ap6256BtBuildProperties" BeforeTargets="PrepareForBuild">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\props\ap6256btprops.vcxproj" Targets="Build" Properties="OutDir=$(OutDir);IntDir=$(IntDir)props\;SupportsPackaging=false;EnableInf2cat=false" />
+  </Target>
   <Target Name="Ap6256BtStagePackage" AfterTargets="DriverPackageTarget" BeforeTargets="Inf2Cat" Condition="'$(Ap6256PackageFirmware)'=='true'">
     <Error Condition="'$(Ap6256FirmwareRoot)'==''" Text="Set Ap6256FirmwareRoot to an external firmware directory." />
     <MakeDir Directories="$(OutDir)$(TargetName)\" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(OutDir)$(TargetName)\" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(OutDir)ap6256btprops.dll" DestinationFolder="$(OutDir)$(TargetName)\" SkipUnchangedFiles="false" />
     <Copy SourceFiles="$(Ap6256FirmwareRoot)\BCM4345C5.hcd" DestinationFolder="$(OutDir)$(TargetName)\" SkipUnchangedFiles="false" />
   </Target>
   <ItemDefinitionGroup Condition="'$(Ap6256UseBuildVersion)'=='true'">

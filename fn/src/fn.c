@@ -11,11 +11,9 @@
 #include <ntddsd.h>
 #include "version.h"
 #include "buildstamp.h"
+#include "logging.h"
 
 #define AP6256FN_F2_BLOCKSIZE 512
-
-#define FnTrace(...) \
-    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "ap6256fn: " __VA_ARGS__)
 
 typedef struct _AP6256FN_CONTEXT {
     WDFDEVICE                Device;
@@ -25,6 +23,7 @@ typedef struct _AP6256FN_CONTEXT {
     UCHAR                    FunctionNumber;
     UCHAR                    FunctionNumberCopy;
     UCHAR                    VersionAtLeast2;
+    ULONG                    LogLevel;
 } AP6256FN_CONTEXT, *PAP6256FN_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(AP6256FN_CONTEXT, Ap6256FnGetContext)
@@ -94,7 +93,7 @@ Ap6256FnAcquireInterface(
     NTSTATUS status;
 
     if (Ctx->SdInterface.InterfaceDereference != NULL) {
-        FnTrace("interface already open; refusing to open it twice\n");
+        FnTrace(Ctx->LogLevel, FN_LOG_WARNING, "interface already open; refusing to open it twice\n");
         return STATUS_DEVICE_BUSY;
     }
 
@@ -104,7 +103,7 @@ Ap6256FnAcquireInterface(
                                 sizeof(SDBUS_INTERFACE_STANDARD),
                                 SDBUS_INTERFACE_VERSION);
     if (!NT_SUCCESS(status)) {
-        FnTrace("SdBusOpenInterface failed 0x%08X\n", status);
+        FnTrace(Ctx->LogLevel, FN_LOG_ERROR, "SdBusOpenInterface failed 0x%08X\n", status);
         RtlZeroMemory(&Ctx->SdInterface, sizeof(Ctx->SdInterface));
         return status;
     }
@@ -123,7 +122,8 @@ Ap6256FnAcquireInterface(
         status = Ctx->SdInterface.InitializeInterface(
             Ctx->SdInterface.Context, &ifParams);
     }
-    FnTrace("InitializeInterface -> 0x%08X\n", status);
+    FnTrace(Ctx->LogLevel, NT_SUCCESS(status) ? FN_LOG_INFORMATION : FN_LOG_ERROR,
+            "InitializeInterface -> 0x%08X\n", status);
     if (!NT_SUCCESS(status)) {
         Ap6256FnReleaseInterface(Ctx);
     }
@@ -148,13 +148,14 @@ Ap6256FnEvtPrepareHardware(
     UNREFERENCED_PARAMETER(ResourcesTranslated);
     PAGED_CODE();
 
-    FnTrace("PrepareHardware entry\n");
+    ctx->LogLevel = FnLogReadSettings(WdfDeviceWdmGetPhysicalDevice(Device));
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "PrepareHardware entry\n");
 
     if (ctx->SdInterface.InterfaceDereference == NULL) {
-        FnTrace("interface not held at PrepareHardware; acquiring now\n");
+        FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "interface not held at PrepareHardware; acquiring now\n");
         status = Ap6256FnAcquireInterface(Device, ctx);
         if (!NT_SUCCESS(status)) {
-            FnTrace("interface acquire failed 0x%08X - starting anyway\n",
+            FnTrace(ctx->LogLevel, FN_LOG_WARNING, "interface acquire failed 0x%08X - starting anyway\n",
                     status);
             return STATUS_SUCCESS;
         }
@@ -163,10 +164,10 @@ Ap6256FnEvtPrepareHardware(
     status = Ap6256FnSdProperty(ctx, SDRF_GET_PROPERTY, SDP_FUNCTION_NUMBER,
                                 &ctx->FunctionNumber, sizeof(ctx->FunctionNumber));
     if (!NT_SUCCESS(status)) {
-        FnTrace("get function number failed 0x%08X\n", status);
+        FnTrace(ctx->LogLevel, FN_LOG_ERROR, "get function number failed 0x%08X\n", status);
         goto fail;
     }
-    FnTrace("function number %u\n", (ULONG)ctx->FunctionNumber);
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "function number %u\n", (ULONG)ctx->FunctionNumber);
 
     ctx->BusDriverVersion = 0x100;
     (void)Ap6256FnSdProperty(ctx, SDRF_GET_PROPERTY, SDP_BUS_DRIVER_VERSION,
@@ -177,23 +178,23 @@ Ap6256FnEvtPrepareHardware(
     status = Ap6256FnSdProperty(ctx, SDRF_GET_PROPERTY, SDP_HOST_BLOCK_LENGTH,
                                 &hostBlockLength, sizeof(hostBlockLength));
     if (!NT_SUCCESS(status)) {
-        FnTrace("fn%u get host block length failed 0x%08X\n",
+        FnTrace(ctx->LogLevel, FN_LOG_ERROR, "fn%u get host block length failed 0x%08X\n",
                 (ULONG)ctx->FunctionNumber, status);
         goto fail;
     }
     if (hostBlockLength == 0) {
-        FnTrace("fn%u host block length is zero\n", (ULONG)ctx->FunctionNumber);
+        FnTrace(ctx->LogLevel, FN_LOG_ERROR, "fn%u host block length is zero\n", (ULONG)ctx->FunctionNumber);
         status = STATUS_DEVICE_CONFIGURATION_ERROR;
         goto fail;
     }
-    FnTrace("fn%u host block length %u, bus version 0x%X\n",
+    FnTrace(ctx->LogLevel, FN_LOG_VERBOSE, "fn%u host block length %u, bus version 0x%X\n",
             (ULONG)ctx->FunctionNumber, (ULONG)hostBlockLength,
             (ULONG)ctx->BusDriverVersion);
 
     status = Ap6256FnSdProperty(ctx, SDRF_GET_PROPERTY, SDP_FUNCTION_INT_ENABLE,
                                 &interruptEnable, sizeof(interruptEnable));
     if (!NT_SUCCESS(status)) {
-        FnTrace("fn%u get interrupt enable failed 0x%08X\n",
+        FnTrace(ctx->LogLevel, FN_LOG_ERROR, "fn%u get interrupt enable failed 0x%08X\n",
                 (ULONG)ctx->FunctionNumber, status);
         goto fail;
     }
@@ -203,16 +204,16 @@ Ap6256FnEvtPrepareHardware(
     status = Ap6256FnSdProperty(ctx, SDRF_SET_PROPERTY, SDP_FUNCTION_BLOCK_LENGTH,
                                 &functionBlockLength, sizeof(functionBlockLength));
     if (NT_SUCCESS(status)) {
-        FnTrace("fn%u ready: function block length %u\n",
+        FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "fn%u ready: function block length %u\n",
                 (ULONG)ctx->FunctionNumber, (ULONG)functionBlockLength);
         return STATUS_SUCCESS;
     }
-    FnTrace("fn%u set function block length %u failed 0x%08X\n",
+    FnTrace(ctx->LogLevel, FN_LOG_ERROR, "fn%u set function block length %u failed 0x%08X\n",
             (ULONG)ctx->FunctionNumber, (ULONG)functionBlockLength, status);
 
 fail:
 
-    FnTrace("fn%u PrepareHardware failed 0x%08X - starting anyway, the main "
+    FnTrace(ctx->LogLevel, FN_LOG_WARNING, "fn%u PrepareHardware failed 0x%08X - starting anyway, the main "
             "driver programs the card block size itself\n",
             (ULONG)ctx->FunctionNumber, status);
     return STATUS_SUCCESS;
@@ -230,7 +231,7 @@ Ap6256FnEvtReleaseHardware(
     UNREFERENCED_PARAMETER(ResourcesTranslated);
     PAGED_CODE();
 
-    FnTrace("fn%u ReleaseHardware (interface kept)\n",
+    FnTrace(ctx->LogLevel, FN_LOG_VERBOSE, "fn%u ReleaseHardware (interface kept)\n",
             (ULONG)ctx->FunctionNumber);
     return STATUS_SUCCESS;
 }
@@ -262,7 +263,7 @@ Ap6256FnEvtD0Exit(
 
     PAGED_CODE();
 
-    FnTrace("fn%u D0Exit -> %s\n",
+    FnTrace(ctx->LogLevel, FN_LOG_VERBOSE, "fn%u D0Exit -> %s\n",
             (ULONG)ctx->FunctionNumber, Ap6256FnPowerStateName(TargetState));
     return STATUS_SUCCESS;
 }
@@ -277,7 +278,7 @@ Ap6256FnEvtQueryRemove(
 
     PAGED_CODE();
 
-    FnTrace("fn%u QueryRemove (orderly removal requested)\n",
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "fn%u QueryRemove (orderly removal requested)\n",
             (ULONG)ctx->FunctionNumber);
     return STATUS_SUCCESS;
 }
@@ -292,7 +293,7 @@ Ap6256FnEvtQueryStop(
 
     PAGED_CODE();
 
-    FnTrace("fn%u QueryStop (resource rebalance requested)\n",
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "fn%u QueryStop (resource rebalance requested)\n",
             (ULONG)ctx->FunctionNumber);
     return STATUS_SUCCESS;
 }
@@ -307,7 +308,7 @@ Ap6256FnEvtSurpriseRemoval(
 
     PAGED_CODE();
 
-    FnTrace("fn%u SURPRISE REMOVAL (the bus dropped the devnode)\n",
+    FnTrace(ctx->LogLevel, FN_LOG_WARNING, "fn%u SURPRISE REMOVAL (the bus dropped the devnode)\n",
             (ULONG)ctx->FunctionNumber);
 }
 
@@ -320,7 +321,7 @@ Ap6256FnEvtDeviceCleanup(
 {
     PAP6256FN_CONTEXT ctx = Ap6256FnGetContext((WDFDEVICE)Object);
 
-    FnTrace("fn%u device cleanup; releasing the SD bus interface\n",
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "fn%u device cleanup; releasing the SD bus interface\n",
             (ULONG)ctx->FunctionNumber);
     Ap6256FnReleaseInterface(ctx);
 }
@@ -339,9 +340,12 @@ Ap6256FnEvtDeviceAdd(
     WDFDEVICE device;
     PAP6256FN_CONTEXT ctx;
     NTSTATUS status;
+    ULONG logLevel;
 
     UNREFERENCED_PARAMETER(Driver);
     PAGED_CODE();
+
+    logLevel = FnLogReadSettings(WdfFdoInitWdmGetPhysicalDevice(DeviceInit));
 
     WdfDeviceInitSetPowerPageable(DeviceInit);
     WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoBuffered);
@@ -361,25 +365,27 @@ Ap6256FnEvtDeviceAdd(
     attributes.SynchronizationScope = WdfSynchronizationScopeDevice;
     attributes.EvtCleanupCallback = Ap6256FnEvtDeviceCleanup;
 
-    FnTrace("DeviceAdd entry\n");
+    FnTrace(logLevel, FN_LOG_INFORMATION, "companion v%s built %s DeviceAdd entry\n",
+            AP6256FN_VER_STR, AP6256_BUILD_STAMP);
 
     status = WdfDeviceCreate(&DeviceInit, &attributes, &device);
     if (!NT_SUCCESS(status)) {
-        FnTrace("WdfDeviceCreate failed 0x%08X\n", status);
+        FnTrace(logLevel, FN_LOG_ERROR, "WdfDeviceCreate failed 0x%08X\n", status);
         return status;
     }
 
     WDF_DEVICE_PNP_CAPABILITIES_INIT(&pnpCaps);
     pnpCaps.Removable = WdfFalse;
-    pnpCaps.NoDisplayInUI = WdfTrue;
+    pnpCaps.NoDisplayInUI = WdfFalse;
     WdfDeviceSetPnpCapabilities(device, &pnpCaps);
 
     ctx = Ap6256FnGetContext(device);
     ctx->Device = device;
+    ctx->LogLevel = logLevel;
 
     status = Ap6256FnAcquireInterface(device, ctx);
     if (!NT_SUCCESS(status)) {
-        FnTrace("DeviceAdd: interface acquire failed 0x%08X - the function "
+        FnTrace(ctx->LogLevel, FN_LOG_WARNING, "DeviceAdd: interface acquire failed 0x%08X - the function "
                 "will almost certainly fail to start\n", status);
     }
 
@@ -388,11 +394,11 @@ Ap6256FnEvtDeviceAdd(
     status = WdfDeviceAssignS0IdleSettings(device, &idleSettings);
     if (!NT_SUCCESS(status)) {
 
-        FnTrace("WdfDeviceAssignS0IdleSettings failed 0x%08X - continuing "
+        FnTrace(ctx->LogLevel, FN_LOG_WARNING, "WdfDeviceAssignS0IdleSettings failed 0x%08X - continuing "
                 "without idle power management\n", status);
     }
 
-    FnTrace("DeviceAdd done\n");
+    FnTrace(ctx->LogLevel, FN_LOG_INFORMATION, "DeviceAdd done\n");
     return STATUS_SUCCESS;
 }
 
@@ -409,7 +415,5 @@ DriverEntry(
     WDF_DRIVER_CONFIG_INIT(&config, Ap6256FnEvtDeviceAdd);
     status = WdfDriverCreate(DriverObject, RegistryPath, WDF_NO_OBJECT_ATTRIBUTES,
                              &config, WDF_NO_HANDLE);
-    FnTrace("companion v%s built %s loading -> 0x%08X\n",
-            AP6256FN_VER_STR, AP6256_BUILD_STAMP, status);
     return status;
 }

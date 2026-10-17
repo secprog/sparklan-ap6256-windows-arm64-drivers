@@ -46,6 +46,16 @@ foreach ($driver in @('wdi', 'wificx', 'diagnostic', 'fn', 'bt')) {
     $artifactVariant = Join-Path $artifactRoot $driver
     New-Item -ItemType Directory -Path $artifactVariant -Force | Out-Null
     Copy-Item -LiteralPath $binaryPath, $infPath -Destination $artifactVariant
+    if ($driver -in @('bt', 'fn')) {
+        $propertiesPath = Join-Path $driverOutput ("out/ap6256${driver}props.dll")
+        $propertiesBytes = [IO.File]::ReadAllBytes($propertiesPath)
+        $propertiesOffset = [BitConverter]::ToInt32($propertiesBytes, 0x3c)
+        if ([BitConverter]::ToUInt16($propertiesBytes, $propertiesOffset + 4) -ne 0xaa64 -or
+            [Diagnostics.FileVersionInfo]::GetVersionInfo($propertiesPath).FileVersion -ne $buildVersion) {
+            throw 'Device properties must be ARM64 and match the driver version.'
+        }
+        Copy-Item -LiteralPath $propertiesPath -Destination $artifactVariant
+    }
     foreach ($artifactFile in Get-ChildItem -LiteralPath $artifactVariant -File) {
         $manifest += (Get-FileHash -LiteralPath $artifactFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $driver + '/' + $artifactFile.Name
     }
@@ -65,12 +75,12 @@ try {
 } finally {
     $sourceZip.Dispose()
 }
-$artifactReadme = 'AP6256 Windows ARM64 drivers, version ' + $buildVersion + ".`n`nUnsigned Release builds with code analysis enabled. Each variant contains SYS and INF files. Firmware, catalogs and signing are supplied separately. See the matching source.zip and included licenses for build instructions and license scope.`n"
+$artifactReadme = 'AP6256 Windows ARM64 drivers, version ' + $buildVersion + ".`n`nUnsigned Release builds with code analysis enabled. Each variant contains SYS and INF files. Bluetooth and the SDIO companion include their device property-page DLLs with a static C runtime. Firmware, catalogs and signing are supplied separately. See the matching source.zip and included licenses for build instructions and license scope.`n"
 [IO.File]::WriteAllText((Join-Path $artifactRoot 'README.txt'), $artifactReadme, (New-Object Text.UTF8Encoding($false)))
 [IO.File]::WriteAllText((Join-Path $artifactRoot 'SHA256SUMS.txt'), (($manifest -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
 if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
     Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value ('version=' + $buildVersion)
 }
 if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
-    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ('Built ARM64 version **' + $buildVersion + '**: WDI, WiFiCx, diagnostic, SDIO function and Bluetooth. Download the driver artifact from this run. The artifact includes unsigned SYS/INF files, matching source and licenses.')
+    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ('Built ARM64 version **' + $buildVersion + '**: WDI, WiFiCx, diagnostic, SDIO function and Bluetooth. Download the driver artifact from this run. The artifact includes unsigned SYS/INF files, Bluetooth and companion property-page DLLs, matching source and licenses.')
 }

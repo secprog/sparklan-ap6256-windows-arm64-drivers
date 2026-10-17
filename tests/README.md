@@ -52,7 +52,8 @@ python -B tests/run.py --suite tracing-live --output C:\ap6256-test-results\etw
 | Scan and NLO | Scan result parsing/ownership, NLO result decoding and Microsoft request-codec handling |
 | Power and lifecycle | Offload admission, wake guards, role/factory cold paths, recovery, statistics and watchdog behavior |
 | Capabilities and logging | WDI/WiFiCx capability publication, authentication/cipher constraints, Disabled logging policy and host trace lifecycle |
-| Bluetooth | H4/ACL read bounds, prefetch allocation limits, FIFO delivery, queue ownership and cleanup races |
+| Bluetooth | H4/ACL read bounds, prefetch ownership and cleanup races; logging thresholds; property-page controls, safe-default staging, validation, Apply/Cancel and save rollback; service-parameter reload and upgrade persistence |
+| SDIO companion | Per-function quiet logging, settings reload, Advanced controls, safe defaults, Apply/Cancel and property-page lifetime |
 
 The suite compiles selected production C functions in user mode.
 

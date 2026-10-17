@@ -1,0 +1,62 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Licensed under the GNU General Public License, version 3 only.
+ * Provided without warranty. See LICENSE for the license text.
+ * Additional permission: see BLUETOOTH-LINKING-EXCEPTION.txt.
+ */
+
+#include <windows.h>
+#include "resource.h"
+#include "version.h"
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+IDD_ADVANCED DIALOGEX 0, 0, 250, 260
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_CAPTION
+CAPTION "Advanced"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Log &level:", -1, 12, 16, 112, 12
+    COMBOBOX IDC_LOG_LEVEL, 132, 13, 104, 90, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "&Startup UART baud rate:", -1, 12, 38, 112, 12
+    COMBOBOX IDC_INITIAL_BAUD, 132, 35, 104, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "&Download UART baud rate:", -1, 12, 60, 112, 12
+    COMBOBOX IDC_DOWNLOAD_BAUD, 132, 57, 104, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "&Operating UART baud rate:", -1, 12, 82, 112, 12
+    COMBOBOX IDC_OPERATIONAL_BAUD, 132, 79, 104, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "&Post-launch delay (ms):", -1, 12, 104, 112, 12
+    EDITTEXT IDC_POST_LAUNCH_DELAY, 132, 101, 104, 14, ES_NUMBER | ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "&Reset release delay (ms):", -1, 12, 126, 112, 12
+    EDITTEXT IDC_REG_ON_DELAY, 132, 123, 104, 14, ES_NUMBER | ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "&Controller sleep:", -1, 12, 148, 112, 12
+    COMBOBOX IDC_SLEEP_MODE, 132, 145, 104, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Configure PCM &audio:", -1, 12, 170, 112, 12
+    COMBOBOX IDC_PCM_AUDIO, 132, 167, 104, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Bluetooth restarts when you save changes and close these properties. Delays accept 0-5000 ms. Startup baud must match the controller.", IDC_STATUS, 12, 194, 224, 36
+    PUSHBUTTON "Restore safe de&faults", IDC_RESTORE_DEFAULTS, 12, 236, 112, 16, WS_TABSTOP
+END
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION AP6256BT_VER_MAJOR,AP6256BT_VER_MINOR,AP6256BT_VER_BUILD,AP6256BT_VER_REV
+PRODUCTVERSION AP6256BT_VER_MAJOR,AP6256BT_VER_MINOR,AP6256BT_VER_BUILD,AP6256BT_VER_REV
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_DLL
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "AP6256 Bluetooth device properties"
+            VALUE "FileVersion", AP6256BT_VER_STR
+            VALUE "OriginalFilename", "ap6256btprops.dll"
+            VALUE "ProductName", "SparkLAN AP6256 Bluetooth UART"
+            VALUE "ProductVersion", AP6256BT_VER_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

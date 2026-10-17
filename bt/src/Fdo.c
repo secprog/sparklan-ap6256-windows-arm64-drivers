@@ -17,6 +17,9 @@ static LONG BtIoctlTraceCount = 0;
 static BOOLEAN
 BtShouldTraceIoctl(VOID)
 {
+    if (!BtLogEnabled(BT_LOG_VERBOSE)) {
+        return FALSE;
+    }
     return (BOOLEAN)(InterlockedIncrement(&BtIoctlTraceCount) <=
                      BT_IOCTL_TRACE_LIMIT);
 }
@@ -616,7 +619,7 @@ FdoOpenDevice(
 
     if (!NT_SUCCESS(Status))
     {
-        BtTrace("WdfIoTargetCreate failed 0x%08X\n", Status);
+        BtTraceError("WdfIoTargetCreate failed 0x%08X\n", Status);
         goto Exit;
     }
 
@@ -634,7 +637,7 @@ FdoOpenDevice(
         if (!NT_SUCCESS(Status))
         {
             DoTrace(LEVEL_INFO, TFLAG_PNP,(" Failed to construct the open path %!STATUS!", Status));
-            BtTrace("RESOURCE_HUB_CREATE_PATH_FROM_ID failed 0x%08X\n", Status);
+            BtTraceError("RESOURCE_HUB_CREATE_PATH_FROM_ID failed 0x%08X\n", Status);
             goto Exit;
         }
     }
@@ -650,7 +653,7 @@ FdoOpenDevice(
         if (!NT_SUCCESS(Status))
         {
             DoTrace(LEVEL_INFO, TFLAG_PNP,("IoGetDeviceInterfaces(): %!STATUS!", Status));
-            BtTrace("no UART connection id in ACPI, and IoGetDeviceInterfaces "
+            BtTraceError("no UART connection id in ACPI, and IoGetDeviceInterfaces "
                     "for GUID_DEVINTERFACE_COMPORT failed 0x%08X\n", Status);
             goto Exit;
         }
@@ -658,7 +661,7 @@ FdoOpenDevice(
         if (*SymbolicLinkList == L'\0')
         {
             Status = STATUS_DEVICE_DOES_NOT_EXIST;
-            BtTrace("no UART connection id in ACPI and no COM port device "
+            BtTraceError("no UART connection id in ACPI and no COM port device "
                     "interface exists\n");
             goto Exit;
         }
@@ -680,7 +683,7 @@ FdoOpenDevice(
     if (!NT_SUCCESS(Status))
     {
         DoTrace(LEVEL_INFO, TFLAG_PNP, ( " WdfIoTargetOpen failed %!STATUS!", Status));
-        BtTrace("WdfIoTargetOpen (exclusive) failed 0x%08X\n", Status);
+        BtTraceWarning("WdfIoTargetOpen (exclusive) failed 0x%08X\n", Status);
 
         WDF_IO_TARGET_OPEN_PARAMS_INIT_OPEN_BY_NAME(&OpenParams,
                                                     &TargetDeviceName,
@@ -688,7 +691,7 @@ FdoOpenDevice(
         OpenParams.ShareAccess = FILE_SHARE_READ | FILE_SHARE_WRITE;
 
         Status = WdfIoTargetOpen(IoTargetSerial, &OpenParams);
-        BtTrace("WdfIoTargetOpen (shared) -> 0x%08X%s\n", Status,
+        BtTraceStatus(Status, "WdfIoTargetOpen (shared) -> 0x%08X%s\n", Status,
                 NT_SUCCESS(Status) ?
                     " <- the port was held by someone else" : "");
     }
@@ -799,6 +802,8 @@ FdoDevPrepareHardware(
 
     PAGED_CODE();
 
+    BtLogLoadSettings(WdfDeviceWdmGetPhysicalDevice(_Device));
+    DeviceQueryDeviceParameters(WdfGetDriver());
     DoTrace(LEVEL_INFO, TFLAG_PNP,("+FdoDevPrepareHardware"));
     BtTrace("PrepareHardware entry\n");
 
@@ -808,7 +813,7 @@ FdoDevPrepareHardware(
     if (!NT_SUCCESS(Status))
     {
         DoTrace(LEVEL_ERROR, TFLAG_PNP, (" Required ACPI connection resources are missing %!STATUS!", Status));
-        BtTrace("FdoFindConnectResources failed 0x%08X - the ACPI device is "
+        BtTraceError("FdoFindConnectResources failed 0x%08X - the ACPI device is "
                 "not exposing the UART/GPIO connection resources\n", Status);
         goto Exit;
     }
@@ -828,7 +833,7 @@ FdoDevPrepareHardware(
     if (!NT_SUCCESS(Status) || FdoExtension->IoTargetSerial == NULL)
     {
         DoTrace(LEVEL_ERROR, TFLAG_PNP, (" FdoOpenDevice failed %!STATUS!", Status));
-        BtTrace("FdoOpenDevice failed 0x%08X (IoTargetSerial %p)\n",
+        BtTraceError("FdoOpenDevice failed 0x%08X (IoTargetSerial %p)\n",
                 Status, FdoExtension->IoTargetSerial);
 
         goto Exit;
@@ -839,7 +844,7 @@ FdoDevPrepareHardware(
     if (!NT_SUCCESS(Status))
     {
         DoTrace(LEVEL_ERROR, TFLAG_PNP, (" HlpInitializeFdoExtension failed %!STATUS!", Status));
-        BtTrace("HlpInitializeFdoExtension failed 0x%08X\n", Status);
+        BtTraceError("HlpInitializeFdoExtension failed 0x%08X\n", Status);
         goto Exit;
     }
 
@@ -849,7 +854,7 @@ FdoDevPrepareHardware(
     if (!NT_SUCCESS(Status))
     {
         DoTrace(LEVEL_ERROR, TFLAG_PNP, (" FdoSetIdleSettings failed %!STATUS!", Status));
-        BtTrace("FdoSetIdleSettings failed 0x%08X (not fatal)\n", Status);
+        BtTraceWarning("FdoSetIdleSettings failed 0x%08X (not fatal)\n", Status);
 
     }
 
@@ -857,7 +862,7 @@ FdoDevPrepareHardware(
         Status = DeviceEnable(_Device, TRUE);
         if (!NT_SUCCESS(Status)) {
             DoTrace(LEVEL_ERROR, TFLAG_PNP,("DeviceEnable failed %!STATUS!", Status));
-            BtTrace("DeviceEnable failed 0x%08X\n", Status);
+            BtTraceError("DeviceEnable failed 0x%08X\n", Status);
             goto Exit;
         }
     }
@@ -866,7 +871,7 @@ FdoDevPrepareHardware(
         Status = DevicePowerOn(_Device);
         if (!NT_SUCCESS(Status)) {
             DoTrace(LEVEL_ERROR, TFLAG_PNP,("DevicePowerOn failed %!STATUS!", Status));
-            BtTrace("DevicePowerOn failed 0x%08X\n", Status);
+            BtTraceError("DevicePowerOn failed 0x%08X\n", Status);
             goto Exit;
         }
     }
@@ -880,7 +885,7 @@ FdoDevPrepareHardware(
 
         Status = STATUS_DEVICE_NOT_READY;
         DoTrace(LEVEL_ERROR, TFLAG_PNP, (" DeviceInitialize failed %!STATUS!", Status));
-        BtTrace("DeviceInitialize failed - the UART would not configure\n");
+        BtTraceError("DeviceInitialize failed - the UART would not configure\n");
 
         goto Exit;
     }
@@ -918,13 +923,13 @@ FdoDevPrepareHardware(
 #else
 
     Status = FdoCreateAllChildren(_Device);
-    BtTrace("FdoCreateAllChildren -> 0x%08X\n", Status);
+    BtTraceStatus(Status, "FdoCreateAllChildren -> 0x%08X\n", Status);
 #endif
 
 Exit:
 
     DoTrace(LEVEL_INFO, TFLAG_PNP, ("-FdoDevPrepareHardware %!STATUS!", Status));
-    BtTrace("PrepareHardware exit 0x%08X\n", Status);
+    BtTraceStatus(Status, "PrepareHardware exit 0x%08X\n", Status);
 
     return Status;
 }
@@ -1031,7 +1036,7 @@ FdoDevSelfManagedIoInit(
     BtTrace("SelfManagedIoInit entry\n");
 
     Status = ReadResourcesAllocate(_Device);
-    BtTrace("ReadResourcesAllocate -> 0x%08X\n", Status);
+    BtTraceStatus(Status, "ReadResourcesAllocate -> 0x%08X\n", Status);
 
     if (!NT_SUCCESS(Status)) {
         DoTrace(LEVEL_ERROR, TFLAG_IO, (" ReadResourcesAllocate failed %!STATUS!", Status));
@@ -1049,7 +1054,7 @@ FdoDevSelfManagedIoInit(
                            sizeof(FdoExtension->ReadBuffer),
                            INITIAL_H4_READ_SIZE);
 
-    BtTrace("read pump start -> 0x%08X%s\n", Status,
+    BtTraceStatus(Status, "read pump start -> 0x%08X%s\n", Status,
             (Status == STATUS_PENDING) ? " (pending, which is normal)" : "");
 
     if (Status == STATUS_PENDING) {
@@ -1064,7 +1069,7 @@ FdoDevSelfManagedIoInit(
 
 Exit:
 
-    BtTrace("SelfManagedIoInit exit 0x%08X\n", Status);
+    BtTraceStatus(Status, "SelfManagedIoInit exit 0x%08X\n", Status);
     return Status;
 }
 
@@ -1594,7 +1599,7 @@ FdoIoQuDeviceControl(
 
     TraceThis = BtShouldTraceIoctl();
     if (TraceThis) {
-        BtTrace("bthx %s (0x%08X) in %u out %u\n",
+        BtTraceVerbose("bthx %s (0x%08X) in %u out %u\n",
                 BtIoctlName(_IoControlCode), _IoControlCode,
                 (ULONG)_InputBufferLength, (ULONG)_OutputBufferLength);
     }
@@ -1724,7 +1729,7 @@ FdoIoQuDeviceControl(
         if (OutBuffer && OutBufferSize >= sizeof(BTHX_VERSION))
         {
             RtlCopyMemory(OutBuffer, &Microsoft_BTHX_DDI_Version, sizeof(BTHX_VERSION));
-            BtTrace("bthx GET_VERSION -> %u\n",
+            BtTraceVerbose("bthx GET_VERSION -> %u\n",
                     Microsoft_BTHX_DDI_Version.Version);
             WdfRequestCompleteWithInformation(_Request, Status, sizeof(BTHX_VERSION));
             return;
@@ -1744,7 +1749,7 @@ FdoIoQuDeviceControl(
             BTHX_VERSION SupportedVersion = *((BTHX_VERSION *)InBuffer);
 
             DoTrace(LEVEL_INFO, TFLAG_IOCTL,("IOCTL_BTHX_SET_VERSION 0x%x", SupportedVersion.Version));
-            BtTrace("bthx SET_VERSION %u (we report %u)\n",
+            BtTraceVerbose("bthx SET_VERSION %u (we report %u)\n",
                     SupportedVersion.Version,
                     Microsoft_BTHX_DDI_Version.Version);
 
@@ -1766,7 +1771,7 @@ FdoIoQuDeviceControl(
             BTHX_CAPABILITIES *pCaps = (BTHX_CAPABILITIES *) OutBuffer;
 
             RtlCopyMemory(pCaps, &FdoExtension->BthXCaps, sizeof(BTHX_CAPABILITIES));
-            BtTrace("bthx QUERY_CAPABILITIES -> maxAclIn %u, sco %u, scoChannels %u,\n"
+            BtTraceVerbose("bthx QUERY_CAPABILITIES -> maxAclIn %u, sco %u, scoChannels %u,\n"
                     "     idleCapable %u, wakeCapable %u\n",
                     pCaps->MaxAclTransferInSize,
                     (ULONG)pCaps->ScoSupport,
@@ -1836,7 +1841,7 @@ FdoIoQuDeviceControl(
     default:
         DoTrace(LEVEL_INFO, TFLAG_IOCTL,(" IOCTL_(0x%x, Func %d)", _IoControlCode, ControlCode));
         if (TraceThis) {
-            BtTrace("bthx UNHANDLED ioctl 0x%08X (function %u) -> NOT_SUPPORTED\n",
+            BtTraceVerbose("bthx UNHANDLED ioctl 0x%08X (function %u) -> NOT_SUPPORTED\n",
                     _IoControlCode, ControlCode);
         }
         Status = STATUS_NOT_SUPPORTED;
@@ -1844,7 +1849,7 @@ FdoIoQuDeviceControl(
     }
 
     if (TraceThis && !NT_SUCCESS(Status)) {
-        BtTrace("bthx %s -> 0x%08X\n", BtIoctlName(_IoControlCode), Status);
+        BtTraceVerbose("bthx %s -> 0x%08X\n", BtIoctlName(_IoControlCode), Status);
     }
 
     if (!NT_SUCCESS(Status) || CompleteRequest)

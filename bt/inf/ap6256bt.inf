@@ -21,6 +21,7 @@ DefaultDestDir = 13
 
 [SourceDisksFiles]
 ap6256bt.sys = 1,,
+ap6256btprops.dll = 1,,
 BCM4345C5.hcd = 1,,
 
 [ControlFlags]
@@ -35,10 +36,16 @@ ExcludeFromSelect = *
 
 [AP6256Bt.Install]
 CopyFiles = AP6256Bt.CopyFiles
+AddReg = AP6256Bt.Properties
 
 [AP6256Bt.CopyFiles]
 ap6256bt.sys
+ap6256btprops.dll
 BCM4345C5.hcd
+
+[AP6256Bt.Properties]
+HKR,,EnumPropPages32,0,"%13%\ap6256btprops.dll,Ap6256BtPropPageProvider"
+HKR,,DebugLogLevel,0x10003,0
 
 [AP6256Bt.Install.HW]
 AddReg = AP6256Bt.Hardware
@@ -65,20 +72,20 @@ ServiceBinary  = %13%\ap6256bt.sys
 AddReg         = AP6256Bt.Parameters
 
 [AP6256Bt.Parameters]
-HKR,Parameters,InitialBaudRate,0x10001,115200
-HKR,Parameters,DownloadBaudRate,0x10001,921600
-HKR,Parameters,OperationalBaudRate,0x10001,3000000
+HKR,Parameters,InitialBaudRate,0x10003,115200
+HKR,Parameters,DownloadBaudRate,0x10003,921600
+HKR,Parameters,OperationalBaudRate,0x10003,3000000
 HKR,Parameters,SkipFwDownload,0x10001,0
 HKR,Parameters,FirmwareDirectory,0x00000000,"%13%\"
 HKR,Parameters,RAMPatchFileName,0x00000000,"BCM4345C5.hcd"
-HKR,Parameters,PostLaunchDelayMs,0x10001,250
+HKR,Parameters,PostLaunchDelayMs,0x10003,250
 HKR,Parameters,DevWakeGpioIndex,0x10001,0
 HKR,Parameters,RegOnGpioIndex,0x10001,1
-HKR,Parameters,RegOnDelayMs,0x10001,100
+HKR,Parameters,RegOnDelayMs,0x10003,100
 HKR,Parameters,BtWakeActiveHigh,0x10001,1
 HKR,Parameters,HostWakeActiveHigh,0x10001,1
-HKR,Parameters,ConfigureSleepMode,0x10001,1
-HKR,Parameters,ConfigureAudio,0x10001,1
+HKR,Parameters,ConfigureSleepMode,0x10003,1
+HKR,Parameters,ConfigureAudio,0x10003,1
 HKR,Parameters,PCMClockMode,0x10001,0
 HKR,Parameters,PCMFillMethod,0x10001,2
 HKR,Parameters,PCMFillNum,0x10001,0

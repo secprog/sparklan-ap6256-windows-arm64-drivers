@@ -486,6 +486,41 @@
       "optional": false
     },
     {
+      "name": "fn-logging",
+      "file": "test-fn-logging.py",
+      "flags": [],
+      "output": null,
+      "optional": false
+    },
+    {
+      "name": "fn-properties",
+      "file": "test-fn-properties.py",
+      "flags": [],
+      "output": null,
+      "optional": false
+    },
+    {
+      "name": "bt-logging",
+      "file": "test-bt-logging.py",
+      "flags": [],
+      "output": null,
+      "optional": false
+    },
+    {
+      "name": "bt-parameters",
+      "file": "test-bt-parameters.py",
+      "flags": [],
+      "output": null,
+      "optional": false
+    },
+    {
+      "name": "bt-properties",
+      "file": "test-bt-properties.py",
+      "flags": [],
+      "output": null,
+      "optional": false
+    },
+    {
       "name": "bt-prefetch",
       "file": "test-bt-prefetch-queue.py",
       "flags": [],

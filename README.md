@@ -17,6 +17,8 @@ choose another external cache. Keep that cache to preserve version assignments.
 Generated version headers are written to the external output directory. Use
 `build-source.ps1` for automatic source versioning; direct project builds use
 the source default version.
+`-Version 1.2.3.4` selects an explicit test-build version without changing the
+automatic version cache.
 
 Use a configured Windows Driver Kit or Enterprise Windows Driver Kit environment:
 
@@ -38,6 +40,31 @@ expects `4345r9rtecdc.bin`, `4345r9nvram.txt`
 and `4345r9.clmb`. Bluetooth packaging expects `BCM4345C5.hcd`. Signing and device
 installation are separate steps.
 
+For Bluetooth logging, open Device Manager as administrator, then open
+**System devices > SparkLAN AP6256 Bluetooth UART > Properties > Advanced**.
+Log Level offers Disabled (the default), Errors, Warnings, Information and
+Verbose. Save the changed level and close the properties window to restart
+Bluetooth. The setting controls
+WinDbg output and the WPP recording threshold; byte dumps require Verbose.
+The same tab provides startup, download and operating UART baud rates,
+post-launch and reset release delays (0-5000 ms), controller sleep, and PCM-audio
+initialization. Startup baud must match the controller. UART choices cover
+115200 through 4000000 baud; an existing custom rate is retained. Installed
+defaults remain 115200 / 921600 / 3000000 baud, 250 / 100 ms, with sleep and
+PCM initialization enabled. Saved settings survive driver upgrades and take
+effect when Bluetooth restarts after you close the properties window.
+**Restore safe defaults** selects the shipped values for these controls,
+including Disabled logging. Review them, then choose Apply or OK to save;
+Cancel discards the staged defaults.
+Bluetooth packages must include `ap6256btprops.dll` alongside the driver and INF.
+
+The SDIO companion provides **System devices > SparkLAN AP6256 Auxiliary SDIO
+Function > Properties > Advanced > Log Level** with the same five levels and
+Disabled default. Each function keeps its own setting. **Restore safe defaults**
+selects Disabled; save and close properties to restart that companion device.
+Companion packages include `ap6256fnprops.dll`. Both property-page DLLs use the
+static C runtime and require no Visual C++ Redistributable.
+
 The [Build ARM64 drivers](.github/workflows/build-drivers.yml) workflow runs on
 pushes, pull requests and manual dispatches. The host tests must pass before
 the driver build starts. It uses the standard `windows-2022`
@@ -49,7 +76,7 @@ configurations build with code analysis and warnings treated as errors.
 
 Download `ap6256-arm64-<version>-<run>` from the completed run's Artifacts
 section. It contains the WDI, WiFiCx, diagnostic, SDIO function and Bluetooth
-SYS/INF files, SHA-256 checksums, matching source and license texts. These
+SYS/INF files, Bluetooth and companion property-page DLLs, SHA-256 checksums, matching source and license texts. These
 unsigned outputs require external firmware, catalog generation and signing
 before installation. Driver artifacts expire after 30 days; failed builds do
 not publish a driver artifact. Dependabot checks Actions and NuGet dependencies
